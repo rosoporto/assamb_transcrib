@@ -219,15 +219,19 @@ def test_dry_run_marks_existing_and_new(tmp_path, capsys):
     assert "будет обработано" in printed
 
 
-def test_resolve_terms_priority(monkeypatch):
+def test_resolve_terms_off_by_default_and_priority(monkeypatch):
     monkeypatch.delenv("ASSEMBLYAI_TERMS", raising=False)
     monkeypatch.setattr(main, "_env_files", lambda: [])
-    assert main.resolve_terms(None, False) == main.DEFAULT_TERMS
-    assert main.resolve_terms("А,Б", False) == "А,Б"
+    assert main.resolve_terms(None, False) is None
+    assert main.resolve_terms(None, False, True) == main.DEFAULT_TERMS
+    assert main.resolve_terms("А,Б", False, True) == "А,Б"
     assert main.resolve_terms("А,Б", True) is None
     assert main.resolve_terms("  ", False) is None
     monkeypatch.setenv("ASSEMBLYAI_TERMS", "Х,У")
     assert main.resolve_terms(None, False) == "Х,У"
     assert main.resolve_terms("А", False) == "А"
+    assert main.resolve_terms(None, True) is None
+    monkeypatch.setenv("ASSEMBLYAI_TERMS", "default")
+    assert main.resolve_terms(None, False) == main.DEFAULT_TERMS
     monkeypatch.setenv("ASSEMBLYAI_TERMS", "")
     assert main.resolve_terms(None, False) is None

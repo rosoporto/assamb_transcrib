@@ -42,6 +42,13 @@ DEFAULT_PRICE_PER_HOUR = 0.21
 PRICE_SPEAKERS_PER_HOUR = 0.02
 PRICE_TERMS_PER_HOUR = 0.05
 
+# Термины, вшитые по умолчанию (улучшают распознавание названий и имён). Платная надбавка $0.05/ч.
+# Заменить список: --terms "А,Б" или ASSEMBLYAI_TERMS в .env. Отключить: --no-terms или ASSEMBLYAI_TERMS= (пусто).
+DEFAULT_TERMS = (
+    "ChatGPT,OpenAI,Anthropic,Claude,Claude Code,Codex,OpenCode,Gemini,Cursor,Copilot,"
+    "GitHub,GitLab,Python,TypeScript,JavaScript,Docker,Telegram,YouTube,API,GPT,LLM,MCP,AssemblyAI"
+)
+
 UPLOAD_ATTEMPTS = 3
 POLL_ATTEMPTS = 5
 PAUSE_MS = 1800  # пауза между словами, после которой начинается новый абзац
@@ -150,6 +157,21 @@ def get_api_key() -> str:
 
 def looks_like_url(value: str) -> bool:
     return bool(re.match(r"^(https?://|www\.)", value.strip(), re.IGNORECASE))
+
+
+def resolve_terms(terms: str | None, no_terms: bool) -> str | None:
+    """Итоговый список терминов: --no-terms > --terms > ASSEMBLYAI_TERMS (пусто = выключено) > DEFAULT_TERMS."""
+    if no_terms:
+        return None
+    for candidate in _env_files():
+        if candidate.is_file():
+            load_dotenv(candidate, override=False)
+    if terms is not None:
+        return terms.strip() or None
+    env = os.environ.get("ASSEMBLYAI_TERMS")
+    if env is not None:
+        return env.strip() or None
+    return DEFAULT_TERMS
 
 
 def resolve_out(output_dir: Path | None) -> Path:
@@ -577,7 +599,8 @@ def run_youtube(url: str, output_dir: Path | None, language: str, speakers: bool
 OutputOpt = typer.Option(None, "--output-dir", "-o", help=f"Куда класть .txt (по умолчанию ./{OUT_DIR_NAME})")
 LanguageOpt = typer.Option("auto", "--language", "-l", help="auto или код языка (ru, en, …)")
 SpeakersOpt = typer.Option(False, "--speakers", help="Метки спикеров")
-TermsOpt = typer.Option(None, "--terms", "-t", help="Термины/имена через запятую для лучшего распознавания")
+TermsOpt = typer.Option(None, "--terms", "-t", help="Свои термины через запятую (вместо вшитых по умолчанию)")
+NoTermsOpt = typer.Option(False, "--no-terms", help="Отключить термины (дешевле на $0.05/ч)")
 ForceOpt = typer.Option(False, "--force", help="Перезаписать уже готовые .txt")
 YesOpt = typer.Option(False, "--yes", "-y", help="Не спрашивать подтверждение пакета")
 DryRunOpt = typer.Option(False, "--dry-run", help="Показать план и цену, ничего не оплачивать")
@@ -590,11 +613,13 @@ def run(
     language: str = LanguageOpt,
     speakers: bool = SpeakersOpt,
     terms: str | None = TermsOpt,
+    no_terms: bool = NoTermsOpt,
     force: bool = ForceOpt,
     yes: bool = YesOpt,
     dry_run: bool = DryRunOpt,
 ) -> None:
     """Ссылка или файл — разобраться и обработать без лишних вопросов."""
+    terms = resolve_terms(terms, no_terms)
     if looks_like_url(source):
         run_youtube(source, output_dir, language, speakers, terms, force, yes, dry_run)
     else:
@@ -608,11 +633,13 @@ def file(
     language: str = LanguageOpt,
     speakers: bool = SpeakersOpt,
     terms: str | None = TermsOpt,
+    no_terms: bool = NoTermsOpt,
     force: bool = ForceOpt,
     yes: bool = YesOpt,
     dry_run: bool = DryRunOpt,
 ) -> None:
     """Транскрибировать файл или все поддерживаемые файлы папки."""
+    terms = resolve_terms(terms, no_terms)
     run_file(path, output_dir, language, speakers, terms, force, yes, dry_run)
 
 
@@ -623,11 +650,13 @@ def youtube(
     language: str = LanguageOpt,
     speakers: bool = SpeakersOpt,
     terms: str | None = TermsOpt,
+    no_terms: bool = NoTermsOpt,
     force: bool = ForceOpt,
     yes: bool = YesOpt,
     dry_run: bool = DryRunOpt,
 ) -> None:
     """Скачать звук YouTube-видео во временную папку и транскрибировать."""
+    terms = resolve_terms(terms, no_terms)
     run_youtube(url, output_dir, language, speakers, terms, force, yes, dry_run)
 
 

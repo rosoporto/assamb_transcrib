@@ -9,3 +9,5 @@ __pycache__/
 transcription.log
 file/
 .claude/
+.pydeps*/
+.coverage

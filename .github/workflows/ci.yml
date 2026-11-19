@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: ${{ matrix.os }} · Python ${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ["3.10", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: ${{ matrix.python }}
+          enable-cache: true
+
+      # uv sync собирает и сам проект — это же и проверка упаковки (pyproject, [project.scripts])
+      - name: Установка зависимостей
+        run: uv sync --dev
+
+      - name: Линтер
+        run: uvx ruff check main.py tests
+
+      - name: Тесты
+        run: uv run pytest -q
+
+      - name: CLI отвечает
+        run: uv run transcrib --help

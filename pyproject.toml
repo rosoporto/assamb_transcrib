@@ -1,6 +1,6 @@
 [project]
 name = "assemblyai-cli"
-version = "0.2.0"
+version = "0.2.1"
 description = "CLI-транскрибатор на AssemblyAI: ссылка или файл на входе"
 requires-python = ">=3.10"
 dependencies = [

@@ -1,0 +1,11 @@
+.env
+.venv/
+__pycache__/
+*.log
+ГОТОВЫЕ_ТЕКСТЫ/
+.claude/logs/*.json
+.pytest_cache/
+.ruff_cache/
+transcription.log
+file/
+.claude/

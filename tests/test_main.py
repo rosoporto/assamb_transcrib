@@ -54,3 +54,18 @@ def test_write_atomic(tmp_path):
     main.write_atomic(p, "abc  \n\n")
     assert p.read_text(encoding="utf-8") == "abc\n"
     assert not list(tmp_path.glob("*.part"))
+
+
+def test_output_names_disambiguate_same_stem():
+    names = main.output_names([Path("a.mp3"), Path("A.MP4"), Path("b.wav")])
+    assert names == {Path("a.mp3"): "a_mp3.txt", Path("A.MP4"): "A_mp4.txt", Path("b.wav"): "b.txt"}
+
+
+def test_log_rotates_when_too_big(tmp_path, monkeypatch):
+    log_file = tmp_path / "transcription.log"
+    log_file.write_text("x" * 50, encoding="utf-8")
+    monkeypatch.setattr(main, "LOG_FILE", log_file)
+    monkeypatch.setattr(main, "LOG_MAX_BYTES", 10)
+    main.log("новая запись")
+    assert (tmp_path / "transcription.log.1").read_text(encoding="utf-8") == "x" * 50
+    assert "новая запись" in log_file.read_text(encoding="utf-8")

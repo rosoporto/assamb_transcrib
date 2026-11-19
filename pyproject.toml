@@ -3,7 +3,7 @@ name = "assemblyai-cli"
 version = "0.1.0"
 description = "CLI-транскрибатор на AssemblyAI"
 requires-python = ">=3.10"
-dependencies = ["typer", "rich", "assemblyai", "yt-dlp", "python-dotenv"]
+dependencies = ["typer", "rich", "assemblyai", "httpx", "yt-dlp", "python-dotenv"]
 
 [dependency-groups]
 dev = ["pytest"]

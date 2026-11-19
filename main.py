@@ -27,6 +27,7 @@ from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 BASE = Path(__file__).resolve().parent
 DEFAULT_OUT = BASE / "ГОТОВЫЕ_ТЕКСТЫ"
 LOG_FILE = BASE / "transcription.log"
+LOG_MAX_BYTES = 2 * 1024 * 1024  # при превышении лог переезжает в transcription.log.1
 
 SUPPORTED = {
     ".mp3", ".mp4", ".m4a", ".mov", ".mkv", ".avi", ".webm", ".wav",
@@ -62,6 +63,11 @@ def err(value: Any) -> str:
 def log(message: str) -> None:
     message = scrub(message)
     stamp = datetime.now().astimezone().isoformat(timespec="seconds")
+    try:
+        if LOG_FILE.stat().st_size > LOG_MAX_BYTES:
+            LOG_FILE.replace(LOG_FILE.with_name(LOG_FILE.name + ".1"))
+    except OSError:
+        pass
     with LOG_FILE.open("a", encoding="utf-8") as fh:
         fh.write(f"{stamp}\t{message}\n")
 
@@ -230,6 +236,17 @@ def wait_with_retries(transcript: Any, name: str) -> Any:
     raise last
 
 
+def output_names(files: List[Path]) -> dict[Path, str]:
+    """Имя .txt для каждого файла: `a.txt`, а при совпадении основ (`a.mp3` и `a.mp4`) — `a_mp3.txt`, `a_mp4.txt`."""
+    counts: dict[str, int] = {}
+    for f in files:
+        counts[f.stem.casefold()] = counts.get(f.stem.casefold(), 0) + 1
+    return {
+        f: f"{f.stem}_{f.suffix.lstrip('.').lower()}.txt" if counts[f.stem.casefold()] > 1 else f"{f.stem}.txt"
+        for f in files
+    }
+
+
 def transcribe_one(transcriber: Any, config: Any, media: Path, out_path: Path, speakers: bool) -> float:
     """Загрузка → задание → ожидание → запись .txt. Возвращает секунды аудио (для расчёта стоимости)."""
     with Progress(SpinnerColumn(), TextColumn("{task.description}"), TimeElapsedColumn(),
@@ -279,16 +296,8 @@ def file(
         raise typer.Exit(0)
 
     output_dir.mkdir(parents=True, exist_ok=True)
-    seen: dict[str, Path] = {}
-    unique: List[Path] = []
-    for f in files:
-        if f.stem in seen:
-            console.print(f"[yellow]Пропускаю {escape(f.name)}: то же имя, что у {escape(seen[f.stem].name)} (результат был бы перезаписан).[/]")
-            continue
-        seen[f.stem] = f
-        unique.append(f)
-    files = unique
-    pending = [f for f in files if force or not (output_dir / f"{f.stem}.txt").exists()]
+    names = output_names(files)
+    pending = [f for f in files if force or not (output_dir / names[f]).exists()]
     console.print(f"Найдено: {len(files)}, к обработке: {len(pending)}, уже готово: {len(files) - len(pending)}.")
     if not pending:
         console.print("Для повторной обработки используйте --force.")
@@ -298,7 +307,7 @@ def file(
     failures = 0
     total_seconds = 0.0
     for i, media in enumerate(pending, 1):
-        out_path = output_dir / f"{media.stem}.txt"
+        out_path = output_dir / names[media]
         console.print(f"\n[bold][{i}/{len(pending)}][/] {media.name}")
         try:
             seconds = transcribe_one(transcriber, config, media, out_path, speakers)

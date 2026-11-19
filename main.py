@@ -520,7 +520,9 @@ def run_youtube(url: str, output_dir: Path | None, language: str, speakers: bool
     import yt_dlp
 
     opts: dict[str, Any] = {
-        "format": "139/bestaudio[abr<=64]/bestaudio/best",
+        # Лучший аудиопоток (opus ~130 кбит/с). Раньше брали 139/abr<=64 (~49 кбит/с): на проверочном
+        # ролике это давало «ChatterJPT» вместо «ChatGPT» независимо от терминов. Размер файла не влияет на цену.
+        "format": "bestaudio/best",
         "quiet": True, "no_warnings": True, "noprogress": True, "noplaylist": True,
         "socket_timeout": 30, "retries": 3, "fragment_retries": 3, "extractor_retries": 3,
         "logger": _QuietLogger(),

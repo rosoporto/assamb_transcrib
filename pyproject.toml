@@ -16,7 +16,7 @@ dependencies = [
 transcrib = "main:main"
 
 [dependency-groups]
-dev = ["pytest"]
+dev = ["pytest", "ruff"]
 
 [build-system]
 requires = ["hatchling"]

@@ -28,7 +28,7 @@ jobs:
         run: uv sync --dev
 
       - name: Линтер
-        run: uvx ruff check main.py tests
+        run: uv run ruff check main.py tests
 
       - name: Тесты
         run: uv run pytest -q

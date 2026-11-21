@@ -58,6 +58,19 @@ _COMMANDS = {"run", "file", "youtube", "key"}
 _WIN_RESERVED = {"CON", "PRN", "AUX", "NUL",
                  *(f"COM{i}" for i in range(1, 10)), *(f"LPT{i}" for i in range(1, 10))}
 
+def force_utf8(*streams: Any) -> None:
+    """Windows-консоль/пайп часто в cp1252/cp1251: кириллица и эмодзи ломают вывод (UnicodeEncodeError)."""
+    for stream in streams:
+        enc = (getattr(stream, "encoding", None) or "").lower().replace("-", "")
+        if enc != "utf8" and hasattr(stream, "reconfigure"):
+            try:
+                stream.reconfigure(encoding="utf-8", errors="replace")
+            except (OSError, ValueError):
+                pass
+
+
+force_utf8(sys.stdout, sys.stderr)
+
 app = typer.Typer(add_completion=False, help="Транскрибатор на AssemblyAI: ссылка или файл на входе.")
 console = Console()
 

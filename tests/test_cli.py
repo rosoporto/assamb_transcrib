@@ -221,7 +221,7 @@ def test_dry_run_marks_existing_and_new(tmp_path, capsys):
 
 def test_resolve_terms_off_by_default_and_priority(monkeypatch):
     monkeypatch.delenv("ASSEMBLYAI_TERMS", raising=False)
-    monkeypatch.setattr(main, "_env_files", lambda: [])
+    monkeypatch.setattr(main, "_env_files", list)
     assert main.resolve_terms(None, False) is None
     assert main.resolve_terms(None, False, True) == main.DEFAULT_TERMS
     assert main.resolve_terms("А,Б", False, True) == "А,Б"
@@ -235,3 +235,13 @@ def test_resolve_terms_off_by_default_and_priority(monkeypatch):
     assert main.resolve_terms(None, False) == main.DEFAULT_TERMS
     monkeypatch.setenv("ASSEMBLYAI_TERMS", "")
     assert main.resolve_terms(None, False) is None
+
+
+def test_force_utf8_switches_cp1252_stream():
+    import io
+    raw = io.BytesIO()
+    stream = io.TextIOWrapper(raw, encoding="cp1252")
+    main.force_utf8(stream)
+    stream.write("Привет 🔥")
+    stream.flush()
+    assert raw.getvalue().decode("utf-8") == "Привет 🔥"
